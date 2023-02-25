@@ -6,13 +6,10 @@ export enum Collections {
 	Announcements = "announcements",
 	Classes = "classes",
 	Courses = "courses",
-	Curriculums = "curriculums",
 	Departments = "departments",
 	Grades = "grades",
 	Majors = "majors",
-	PracticeClasses = "practice_classes",
-	Registrations = "registrations",
-	StudentNotes = "studentNotes",
+	Schedules = "schedules",
 	Users = "users",
 }
 
@@ -46,18 +43,12 @@ export type AnnouncementsRecord = {
 	timeModified: IsoDateString
 }
 
-export type ClassesRecord<TlecturerInfo = unknown> = {
+export type ClassesRecord = {
 	name: string
 	course: RecordIdString
-	totalSlots: number
-	remainingSlots: number
-	day: string
-	startPeriod: number
-	numberOfPeriod: number
-	lecturerInfo: null | TlecturerInfo
 	room?: string
-	durationStart: IsoDateString
-	durationEnd: IsoDateString
+	lecturerName?: string
+	lecturerMail?: string
 }
 
 export type CoursesRecord = {
@@ -70,13 +61,6 @@ export type CoursesRecord = {
 	isComplete?: boolean
 }
 
-export type CurriculumsRecord = {
-	period: number
-	content?: string
-	class: RecordIdString
-	classMaterial?: string
-}
-
 export type DepartmentsRecord = {
 	name: string
 }
@@ -87,8 +71,7 @@ export type GradesRecord = {
 	gradeFinal: number
 	gradeOverallNumber: number
 	gradeOverallLetter?: string
-	class: RecordIdString
-	student: RecordIdString
+	course: RecordIdString
 }
 
 export type MajorsRecord = {
@@ -96,24 +79,12 @@ export type MajorsRecord = {
 	department: RecordIdString
 }
 
-export type PracticeClassesRecord<TlecturerInfo = unknown> = {
-	class: RecordIdString
-	startPeriod: number
-	numberOfPeriod: string
-	lecturerInfo?: null | TlecturerInfo
-	room?: string
-	duration: string
-}
-
-export type RegistrationsRecord = {
-	student: RecordIdString
-	class: RecordIdString
-}
-
-export type StudentNotesRecord = {
-	curriculum: RecordIdString
-	student: RecordIdString
-	noteMaterial?: string
+export type SchedulesRecord = {
+	session: number
+	content?: string
+	course: RecordIdString
+	classMaterial?: string
+	studentNote?: string
 }
 
 export type UsersRecord = {
@@ -132,27 +103,21 @@ export type UsersRecord = {
 
 // Response types include system fields and match responses from the PocketBase API
 export type AnnouncementsResponse = AnnouncementsRecord & BaseSystemFields
-export type ClassesResponse<TlecturerInfo = unknown> = ClassesRecord<TlecturerInfo> & BaseSystemFields
+export type ClassesResponse = ClassesRecord & BaseSystemFields
 export type CoursesResponse = CoursesRecord & BaseSystemFields
-export type CurriculumsResponse = CurriculumsRecord & BaseSystemFields
 export type DepartmentsResponse = DepartmentsRecord & BaseSystemFields
 export type GradesResponse = GradesRecord & BaseSystemFields
 export type MajorsResponse = MajorsRecord & BaseSystemFields
-export type PracticeClassesResponse<TlecturerInfo = unknown> = PracticeClassesRecord<TlecturerInfo> & BaseSystemFields
-export type RegistrationsResponse = RegistrationsRecord & BaseSystemFields
-export type StudentNotesResponse = StudentNotesRecord & BaseSystemFields
+export type SchedulesResponse = SchedulesRecord & BaseSystemFields
 export type UsersResponse = UsersRecord & AuthSystemFields
 
 export type CollectionRecords = {
 	announcements: AnnouncementsRecord
 	classes: ClassesRecord
 	courses: CoursesRecord
-	curriculums: CurriculumsRecord
 	departments: DepartmentsRecord
 	grades: GradesRecord
 	majors: MajorsRecord
-	practice_classes: PracticeClassesRecord
-	registrations: RegistrationsRecord
-	studentNotes: StudentNotesRecord
+	schedules: SchedulesRecord
 	users: UsersRecord
 }

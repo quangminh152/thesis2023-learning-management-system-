@@ -10,11 +10,9 @@ import type {
   ClassesResponse,
   CoursesRecord,
   CoursesResponse,
-  CurriculumsResponse,
   DepartmentsResponse,
   MajorsRecord,
   MajorsResponse,
-  RegistrationsResponse,
   UsersResponse,
 } from "server-cheesecake";
 import { Collections } from "server-cheesecake";
@@ -28,8 +26,8 @@ import ClassSemester from "./components/ClassSemester";
 interface UsersData {
   users: ListResult<UsersResponse>;
   record: UsersResponse;
-  // curriculumList: ListResult<CurriculumsResponse>
   courseList: ListResult<CoursesResponse>;
+  classList: ListResult<ClassesResponse>;
 }
 
 function Users({
@@ -51,18 +49,18 @@ function Users({
   const major = currentUser.expand?.major as MajorsResponse;
   const department = major.expand?.department as DepartmentsResponse;
   const courseList = dataParse?.courseList as ListResult<CoursesResponse>;
-
+  const classList = dataParse?.classList as ListResult<ClassesResponse>;
   // const curriculum = dataParse?.curriculumList as ListResult<CurriculumsResponse>
   // curriculum.map(itemCur => itemCur.items.map(item => console.log(item.content)))
 
-  const dataSubjects = [
-    {
-      imageLink:
-        "https://www.google.com/url?sa=i&url=http%3A%2F%2Fwarmgun.com%2Fphotoshop-ai-ung-dung-thiet-ke-do-hoa-nao-tot%2F&psig=AOvVaw1K7MT9plyVREinBHFkcVCU&ust=1676174965740000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCLjOjb3MjP0CFQAAAAAdAAAAABAE",
-      subjectTitle: "Digital Logic Design",
-      lecturer: "Tu",
-    },
-  ];
+  // const dataSubjects = [
+  //   {
+  //     imageLink:
+  //       "https://www.google.com/url?sa=i&url=http%3A%2F%2Fwarmgun.com%2Fphotoshop-ai-ung-dung-thiet-ke-do-hoa-nao-tot%2F&psig=AOvVaw1K7MT9plyVREinBHFkcVCU&ust=1676174965740000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCLjOjb3MjP0CFQAAAAAdAAAAABAE",
+  //     subjectTitle: "Digital Logic Design",
+  //     lecturer: "Tu",
+  //   },
+  // ];
 
   return (
     <>
@@ -124,9 +122,19 @@ function Users({
             My classes
           </h2>
           <ClassSemester
-            semester="Semester 1, 2019 - 2020"
-            dataSubjects={dataSubjects}
+            dataSubjects={classList}
           />
+
+          {/* {courseList.items.map(courseList => <ClassSemester data={
+            {
+              subjectName: courseList.name,
+              subjectCredit: courseList.credit,
+              subjectYear: courseList.year,
+              subjectSem: courseList.semester,
+              isElective: JSON.stringify(courseList.isElective),
+              isComplete: courseList.isComplete
+            }
+          } />)} */}
         </article>
       </main>
     </>
@@ -148,15 +156,15 @@ export const getServerSideProps = async ({
 
   // console.log(temp);
 
-  const userRegistration = await pbServer
-    .collection(Collections.Registrations)
-    .getFirstListItem<RegistrationsResponse>(`student="${user.id}"`);
+  // const userRegistration = await pbServer
+  //   .collection(Collections.Registrations)
+  //   .getFirstListItem<RegistrationsResponse>(`student="${user.id}"`);
 
-  const userRegistrations = await pbServer
-    .collection(Collections.Registrations)
-    .getList<RegistrationsResponse>(1, 50, {
-      filter: `student="${user.id}"`,
-    });
+  // const userRegistrations = await pbServer
+  //   .collection(Collections.Registrations)
+  //   .getList<RegistrationsResponse>(1, 50, {
+  //     filter: `student="${user.id}"`,
+  //   });
 
   const courseList = await pbServer
     .collection(Collections.Courses)
@@ -165,16 +173,35 @@ export const getServerSideProps = async ({
     });
   console.log(courseList);
 
-  const curriculumList = await Promise.all(
-    userRegistrations.items.map((item) =>
+  // const classList = await pbServer
+  //   .collection(Collections.Classes)
+  //   .getList<ClassesResponse>(1, 50, {
+  //     filter: `course="${item.course}"`,
+  //   });
+  // console.log(classList);
+
+  const classList = await Promise.all(
+    courseList.items.map((item) =>
       pbServer
-        .collection(Collections.Curriculums)
-        .getList<CurriculumsResponse>(1, 50, {
-          filter: `class = '${item.class}'`,
+        .collection(Collections.Classes)
+        .getList<ClassesResponse>(1, 50, {
+          filter: `course = '${item.id}'`,
           $autoCancel: false,
         })
     )
   );
+  console.log(classList);
+
+  // const curriculumList = await Promise.all(
+  //   userRegistrations.items.map((item) =>
+  //     pbServer
+  //       .collection(Collections.Curriculums)
+  //       .getList<CurriculumsResponse>(1, 50, {
+  //         filter: `class = '${item.class}'`,
+  //         $autoCancel: false,
+  //       })
+  //   )
+  // );
 
   const users = await pbServer
     .collection(Collections.Users)
@@ -190,7 +217,7 @@ export const getServerSideProps = async ({
 
   return {
     props: {
-      data: SuperJSON.stringify({ users, record, courseList } as UsersData),
+      data: SuperJSON.stringify({ users, record, courseList, classList } as UsersData),
     },
   };
 };
