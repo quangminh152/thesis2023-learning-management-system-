@@ -6,14 +6,14 @@ import ErrorPage from "next/error";
 import Head from "next/head";
 import Link from "next/link";
 import type { ListResult } from "pocketbase";
-import type { ClassesResponse, CoursesRecord, CoursesResponse, CurriculumsResponse, DepartmentsResponse, MajorsRecord, MajorsResponse, RegistrationsResponse, UsersResponse } from "server-cheesecake";
-import { Collections } from "server-cheesecake";
+import { ClassesInformationResponse, Collections, CoursesResponse, MajorsResponse, UsersResponse } from "server-cheesecake";
 import MainLayout from "src/components/layouts/MainLayout";
 import { User } from "src/contexts/AuthContextProvider";
 import { getPBServer } from "src/lib/pb_server";
 import SuperJSON from "superjson";
 import TableRow from "./components/TableRow";
-import Header from "src/components/layouts/header";
+import Header from "src/components/layouts/Header";
+import { useState } from "react";
 
 
 interface UsersData {
@@ -21,6 +21,7 @@ interface UsersData {
   record: UsersResponse
   // curriculumList: ListResult<CurriculumsResponse>
   courseList: ListResult<CoursesResponse>
+  coursesClassInfoList: ListResult<ClassesInformationResponse>[]
 }
 
 function Users({
@@ -39,8 +40,8 @@ function Users({
   const currentUser = dataParse?.record;
   const { username, last_name, first_name, studentID } = currentUser && currentUser
   const major = currentUser.expand?.major as MajorsResponse;
-  const department = major.expand?.department as DepartmentsResponse;
   const courseList = dataParse?.courseList as ListResult<CoursesResponse>;
+  const coursesClassInfoList = dataParse?.coursesClassInfoList as ListResult<ClassesInformationResponse>[];
 
   const headerTableElement = ["Credits",
     "Year",
@@ -49,6 +50,14 @@ function Users({
     "Status"]
   // const curriculum = dataParse?.curriculumList as ListResult<CurriculumsResponse>
   // curriculum.map(itemCur => itemCur.items.map(item => console.log(item.content)))
+
+  const totalSubjectCompleted = coursesClassInfoList.filter(classInfoList => classInfoList.items[0]?.isCompleted)
+  const [totalComplete, setTotalComplete] = useState(totalSubjectCompleted.length)
+
+
+  const totalCreditCompleted = totalSubjectCompleted.reduce((partialSum, sum) => partialSum + sum.items[0]?.expand?.course.credit, 0)
+  const [totalCreditComplete, setTotalCreditComplete] = useState(totalCreditCompleted)
+
   return (
     <>
       <Header />
@@ -82,9 +91,6 @@ function Users({
             <p className="text-lg font-semibold leading-8 text-gray-600 whitespace-nowrap">
               Department
             </p>
-            <p className="text-lg font-bold leading-8 text-gray-800 whitespace-nowrap">
-              {department?.name}
-            </p>
 
             <p className="text-lg font-semibold leading-8 text-gray-600 whitespace-nowrap">
               Email
@@ -108,7 +114,7 @@ function Users({
               Total credits completed
             </p>
             <p className="text-lg font-bold leading-8 text-gray-800 whitespace-nowrap text-right">
-              xx/150
+              {totalCreditComplete}/150
             </p>
           </div>
 
@@ -127,16 +133,18 @@ function Users({
           </div>
 
           <div className="grid gap-x-0 gap-y-0 grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] bg-slate-50">
-            {courseList.items.map(courseList => <TableRow data={
-              {
-                subjectName: courseList.name,
-                subjectCredit: courseList.credit,
-                subjectYear: courseList.year,
-                subjectSem: courseList.semester,
-                isElective: JSON.stringify(courseList.isElective),
-                isComplete: courseList.isComplete
-              }
-            } />)}
+            {coursesClassInfoList.map(classInfoList => {
+              return <TableRow data={
+                {
+                  subjectName: classInfoList.items[0]?.expand?.course.name,
+                  subjectCredit: classInfoList.items[0]?.expand?.course.credit,
+                  subjectYear: classInfoList.items[0]?.expand?.course.yearCurri,
+                  subjectSem: classInfoList.items[0]?.expand?.course.semesterCurri,
+                  isElective: JSON.stringify(classInfoList.items[0]?.expand?.course.isElective),
+                  isComplete: classInfoList.items[0]?.isCompleted,
+                }
+              } />
+            })}
           </div>
 
 
@@ -181,22 +189,6 @@ function Users({
           </div>
         </article>
       </main>
-
-      <Head>
-        <title>Users</title>
-      </Head>
-      <h1>Users</h1>
-      {/* <ol>{usersList}</ol> */}
-      {/* <p>{ JSON.stringify(dataParse.record) }</p> */}
-      <p>Name: {currentUser.last_name} {currentUser.first_name}</p>
-      <p>Student ID: {currentUser.studentID}</p>
-      <p>Major: {major.name}</p>
-      <p>Department: {department.name}</p>
-      <p>Email: {currentUser.email}</p>
-
-      {/* <p>Curriculum: { curriculum.map(itemCur => itemCur.items.map(item => item.content)) } </p> */}
-
-      <p>SHCD DK: {JSON.stringify(currentUser.shcd_dk)}</p>
     </>
   );
 }
@@ -208,37 +200,13 @@ export const getServerSideProps = async ({
   const pbServer = await getPBServer(req, res);
   const user = pbServer.authStore.model as User;
 
-  const temp = await pbServer
-    .collection(Collections.Users)
-    .getList<UsersResponse>(1, 50, {
-      expand: "registrations(user).class",
-    });
-
-  // console.log(temp);
-
-  // const userRegistration = await pbServer
-  //   .collection(Collections.Registrations)
-  //   .getFirstListItem<RegistrationsResponse>(`student="${user.id}"`)
-
-  // const userRegistrations = await pbServer
-  //   .collection(Collections.Registrations)
-  //   .getList<RegistrationsResponse>(1, 50, {
-  //     filter: `student="${user.id}"`,
-  //   })
-
   const courseList = await pbServer
     .collection(Collections.Courses)
     .getList<CoursesResponse>(1, 50, {
-      filter: `major="${user.major}"`,
+      filter: `major="${user.major}"`
     })
-  console.log(courseList)
 
-  // const curriculumList = await Promise.all(userRegistrations.items.map(item => pbServer
-  //   .collection(Collections.Curriculums)
-  //   .getList<CurriculumsResponse>(1, 50, {
-  //     filter: `class = '${item.class}'`,
-  //     $autoCancel: false
-  //   })))
+
 
   const users = await pbServer
     .collection(Collections.Users)
@@ -252,9 +220,29 @@ export const getServerSideProps = async ({
       expand: 'major,major.department',
     });
 
+  // const classInfo = await pbServer.collection(Collections.ClassesInformation).getList<ClassesInformationResponse>(1, 50, {
+  //   filter: `student="${user.id}" && courseList="${courseList.id}"`
+  // });
+
+  let coursesClassInfoList = await Promise.all(
+    courseList.items.map((item) => pbServer
+      .collection(Collections.ClassesInformation)
+      .getList<ClassesInformationResponse>(1, 50, {
+        filter: `course="${item.id}" && student="${user.id}"`,
+        expand: "course",
+        $autoCancel: false,
+      })
+    )
+  );
+
+  coursesClassInfoList = coursesClassInfoList.filter((coursesClassInfo) => coursesClassInfo.totalItems > 0)
+
+  // console.log("=======")
+  // console.log(JSON.stringify(coursesClassInfoList, null, 2));
+
   return {
     props: {
-      data: SuperJSON.stringify({ users, record, courseList } as UsersData),
+      data: SuperJSON.stringify({ users, record, courseList, coursesClassInfoList } as UsersData),
     },
   };
 };

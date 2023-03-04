@@ -5,7 +5,7 @@ import logo from "/Users/doquangminh/Desktop/Thesis 2023/thesis2023-learning-man
 export default function Header() {
     return (
 
-        <div className="fixed inset-x-0 top-0 flex items-center px-[8vw] py-2 h-24 bg-sky-600">
+        <div className="sticky inset-x-0 top-0 flex items-center px-[8vw] py-2 h-24 bg-sky-600">
             <div className="flex items-center">
                 <Image className="pr-2"
                     src={logo}
